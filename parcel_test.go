@@ -29,27 +29,26 @@ func TestAddGetDelete(t *testing.T) {
 	db, err := sql.Open("sqlite", "tracker.db")
 	require.NoError(t, err)
 	defer db.Close()
+
 	store := NewParcelStore(db)
 	parcel := getTestParcel()
 
 	// add
-	id, err := store.Add(parcel)
+	parcel.Number, err = store.Add(parcel)
 	require.NoError(t, err)
-	require.NotEmpty(t, id)
+	require.Greater(t, parcel.Number, 0)
 
 	// get
-	res, err := store.Get(id)
+	storedParcel, err := store.Get(parcel.Number)
 	require.NoError(t, err)
-	assert.Equal(t, res.Client, parcel.Client)
-	assert.Equal(t, res.Status, parcel.Status)
-	assert.Equal(t, res.Address, parcel.Address)
-	assert.Equal(t, res.CreatedAt, parcel.CreatedAt)
+	assert.Equal(t, parcel, storedParcel)
 
 	// delete
-	err = store.Delete(id)
+	err = store.Delete(parcel.Number)
 	require.NoError(t, err)
-	_, err = store.Get(id)
-	require.Equal(t, sql.ErrNoRows, err)
+	parcel, err = store.Get(parcel.Number)
+	require.Error(t, err)
+	assert.NotNil(t, parcel)
 
 }
 
@@ -93,13 +92,13 @@ func TestSetStatus(t *testing.T) {
 	require.NotZero(t, id)
 
 	// set status
-	err = store.SetStatus(id, "delivered")
+	err = store.SetStatus(id, ParcelStatusDelivered)
 	require.NoError(t, err)
 
 	// check
 	res, err := store.Get(id)
 	require.NoError(t, err)
-	assert.Equal(t, res.Status, "delivered")
+	assert.Equal(t, ParcelStatusDelivered, res.Status)
 }
 
 // TestGetByClient
@@ -107,7 +106,7 @@ func TestSetStatus(t *testing.T) {
 func TestGetByClient(t *testing.T) {
 	db, err := sql.Open("sqlite", "tracker.db")
 	require.NoError(t, err)
-
+	defer db.Close()
 	store := NewParcelStore(db)
 
 	parcels := []Parcel{
@@ -141,11 +140,6 @@ func TestGetByClient(t *testing.T) {
 	assert.Equal(t, len(parcels), len(storedParcels))
 
 	// check
-	for _, parcel := range storedParcels {
+	assert.ElementsMatch(t, parcels, storedParcels)
 
-		id := parcel.Number
-		assert.NotEqual(t, 0, parcelMap[id])
-		assert.Equal(t, parcelMap[id], parcel)
-
-	}
 }
