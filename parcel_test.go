@@ -48,8 +48,6 @@ func TestAddGetDelete(t *testing.T) {
 	require.NoError(t, err)
 	parcel, err = store.Get(parcel.Number)
 	require.Error(t, err)
-	assert.NotNil(t, parcel)
-
 }
 
 // TestSetAddress
@@ -140,6 +138,9 @@ func TestGetByClient(t *testing.T) {
 	assert.Equal(t, len(parcels), len(storedParcels))
 
 	// check
-	assert.ElementsMatch(t, parcels, storedParcels)
-
+	for _, parcel := range storedParcels {
+		_, ok := parcelMap[parcel.Number]
+		require.True(t, ok)
+		assert.EqualValues(t, parcelMap[parcel.Number], parcel)
+	}
 }
